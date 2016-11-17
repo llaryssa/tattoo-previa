@@ -14,8 +14,8 @@ using namespace std;
 int _tmain(int argc, _TCHAR* argv[])
 {
 	
-	char* filename = "C:/Users/Laryssa/Documents/tattoo-previa/tatto-previa/images/rose.png";
-	//char* filename = "C:/Users/Laryssa/Documents/tattoo-previa/tatto-previa/images/windows.png";
+	//char* filename = "C:/Users/Laryssa/Documents/tattoo-previa/tatto-previa/images/rose.png";
+	char* filename = "C:/Users/Laryssa/Documents/tattoo-previa/tatto-previa/images/lena.png";
 
 	//cv::Mat img = cv::imread(filename, CV_LOAD_IMAGE_COLOR);
 	//cv::namedWindow("window", CV_WINDOW_AUTOSIZE);

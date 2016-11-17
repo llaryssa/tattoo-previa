@@ -31,7 +31,7 @@ private:
 	int colorWidth;
 	int colorHeight;
 	unsigned int colorBytesPerPixel;
-	cv::Mat colorMat, tattooMat;
+	cv::Mat colorMat, tattooSrcMat, tattooMat;
 	cv::Point tattooLocation;
 
 	cv::Point rightElbow;

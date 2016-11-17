@@ -6,6 +6,8 @@
 #include <thread>
 #include <chrono>
 
+#include <math.h>
+
 #include <omp.h>
 
 // Constructor
@@ -25,7 +27,8 @@ Kinect::~Kinect()
 void Kinect::setTattoo(char* filename)
 {
 	// -1 is to guarantee that the transparancy is read
-	tattooMat = cv::imread(filename, -1);
+	tattooSrcMat = cv::imread(filename, -1);
+	tattooMat = tattooSrcMat.clone();
 	if (!tattooMat.data) {
 		std::cout << "NAO TEM IMAGEM";
 	}
@@ -211,10 +214,35 @@ inline void Kinect::updateBody()
 // Update Image
 inline void Kinect::updateTattoo()
 {
-	// fazer as contas das transformacoes da tatuagem
-	tattooLocation = cv::Point(rand() % 1000, rand() % 550);
+	// centro da imagem
+	//cv::Point2f center = cv::Point2f(round(tattooSrcMat.cols / 2), round(tattooSrcMat.rows / 2));
+	cv::Point2f center = cv::Point2f(round(tattooMat.cols / 2), round(tattooMat.rows / 2));
+
+	// angulo do vetor entre os pontos desejados
+	cv::Point2f vector = cv::Point2f(rightHand.x - rightElbow.x, rightHand.y - rightElbow.y);
+	float norm = sqrt((vector.x*vector.x) + (vector.y*vector.y));
+	vector.x /= norm;
+	vector.y /= norm;
+
+	cv::Point2f axisVector = (0, -1);
+
+	float angleInRadians = acos((axisVector.x * vector.x) + (axisVector.y + vector.y));
+
+	double angle = angleInRadians*(57.2958);    // in degrees / counter-clockwise
+	double scale = norm / (tattooSrcMat.rows);
+
+	// transform tattoo
+	cv::Mat R = cv::getRotationMatrix2D(center, angle, scale);
+	cv::warpAffine(tattooSrcMat, tattooMat, R, tattooSrcMat.size(), cv::INTER_CUBIC);
+
+	// define its location
 	tattooLocation = cv::Point(rightElbow.x, rightElbow.y);
-	std::cout << rightElbow << " x " << rightHand << std::endl;
+
+	std::cout << tattooSrcMat.rows << " : " << norm << std::endl;
+
+	cv::line(colorMat, rightHand, rightElbow, cv::Scalar(255, 0, 0), 3);
+	cv::circle(tattooMat, center, 10, cv::Scalar(0, 0, 200), -1);
+	
 }
 
 // Draw Data
@@ -271,7 +299,8 @@ inline void Kinect::overlayTattoo(cv::Mat& src, cv::Mat& overlay, const cv::Poin
 			for (int c = 0; opacity > 0 && c < src.channels(); ++c) {
 				unsigned char overlayPx = overlay.data[fY * overlay.step + fX * overlay.channels() + c];
 				unsigned char srcPx = src.data[y * src.step + x * src.channels() + c];
-				src.data[y * src.step + src.channels() * x + c] = srcPx * (1. - opacity) + overlayPx * opacity;
+				//src.data[y * src.step + src.channels() * x + c] = srcPx * (1. - opacity) + overlayPx * opacity;
+				src.data[y * src.step + src.channels() * x + c] = overlayPx;
 			}
 		}
 	}
