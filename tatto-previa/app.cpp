@@ -7,6 +7,7 @@
 #include <chrono>
 
 #include <math.h>
+#include <string>  
 
 #include <omp.h>
 
@@ -224,12 +225,12 @@ inline void Kinect::updateTattoo()
 	vector.x /= norm;
 	vector.y /= norm;
 
-	cv::Point2f axisVector = (0, -1);
+	cv::Point2f axisVector = (-1, 0);
 
 	float angleInRadians = acos((axisVector.x * vector.x) + (axisVector.y + vector.y));
 
 	double angle = angleInRadians*(57.2958);    // in degrees / counter-clockwise
-	double scale = norm / (tattooSrcMat.rows);
+	double scale = norm / (tattooSrcMat.rows*2);
 
 	// transform tattoo
 	cv::Mat R = cv::getRotationMatrix2D(center, angle, scale);
@@ -241,8 +242,16 @@ inline void Kinect::updateTattoo()
 	std::cout << tattooSrcMat.rows << " : " << norm << std::endl;
 
 	cv::line(colorMat, rightHand, rightElbow, cv::Scalar(255, 0, 0), 3);
-	cv::circle(tattooMat, center, 10, cv::Scalar(0, 0, 200), -1);
-	
+	//cv::circle(tattooMat, center, 10, cv::Scalar(0, 0, 200), -1);
+	cv::putText(colorMat, std::to_string(angle), rightElbow, cv::FONT_HERSHEY_SCRIPT_SIMPLEX, 1.5, cv::Scalar::all(0), 3);
+
+
+	cv::line(colorMat, cv::Point(100,100), cv::Point(vector.x*50+100, vector.y*50+100), cv::Scalar(255, 100, 0), 3);
+	cv::circle(colorMat, cv::Point(vector.x * 50 + 100, vector.y * 50 + 100), 5, cv::Scalar(255, 100, 0), -1);
+
+	cv::line(colorMat, cv::Point(100, 100), cv::Point(axisVector.x * 50 + 100, axisVector.y * 5 + 100), cv::Scalar(255, 100, 0), 3);
+	cv::circle(colorMat, cv::Point(axisVector.x * 50 + 100, axisVector.y * 50 + 100), 5, cv::Scalar(255, 100, 0), -1);
+
 }
 
 // Draw Data
