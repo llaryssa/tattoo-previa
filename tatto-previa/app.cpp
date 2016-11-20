@@ -225,9 +225,10 @@ inline void Kinect::updateTattoo()
 	vector.x /= norm;
 	vector.y /= norm;
 
-	cv::Point2f axisVector = (-1, 0);
+	cv::Point2f axisVector = cv::Point2f(0, 0);
 
-	float angleInRadians = acos((axisVector.x * vector.x) + (axisVector.y + vector.y));
+	double cossine = (axisVector.x * vector.x) + (axisVector.y + vector.y);
+	double angleInRadians = acos(cossine);
 
 	double angle = angleInRadians*(57.2958);    // in degrees / counter-clockwise
 	double scale = norm / (tattooSrcMat.rows*2);
@@ -237,20 +238,21 @@ inline void Kinect::updateTattoo()
 	cv::warpAffine(tattooSrcMat, tattooMat, R, tattooSrcMat.size(), cv::INTER_CUBIC);
 
 	// define its location
-	tattooLocation = cv::Point(rightElbow.x, rightElbow.y);
+	tattooLocation = cv::Point((rightElbow.x + rightHand.x) / 2, (rightElbow.y + rightHand.y) / 2);
 
 	std::cout << tattooSrcMat.rows << " : " << norm << std::endl;
 
 	cv::line(colorMat, rightHand, rightElbow, cv::Scalar(255, 0, 0), 3);
 	//cv::circle(tattooMat, center, 10, cv::Scalar(0, 0, 200), -1);
-	cv::putText(colorMat, std::to_string(angle), rightElbow, cv::FONT_HERSHEY_SCRIPT_SIMPLEX, 1.5, cv::Scalar::all(0), 3);
+	cv::putText(colorMat, std::to_string(angle) + " / " + std::to_string(cossine), rightElbow, cv::FONT_HERSHEY_SCRIPT_SIMPLEX, 1.5, cv::Scalar(0,255,0), 3);
 
 
 	cv::line(colorMat, cv::Point(100,100), cv::Point(vector.x*50+100, vector.y*50+100), cv::Scalar(255, 100, 0), 3);
 	cv::circle(colorMat, cv::Point(vector.x * 50 + 100, vector.y * 50 + 100), 5, cv::Scalar(255, 100, 0), -1);
 
-	cv::line(colorMat, cv::Point(100, 100), cv::Point(axisVector.x * 50 + 100, axisVector.y * 5 + 100), cv::Scalar(255, 100, 0), 3);
+	cv::line(colorMat, cv::Point(100, 100), cv::Point(axisVector.x * 50 + 100, axisVector.y * 50 + 100), cv::Scalar(255, 100, 0), 3);
 	cv::circle(colorMat, cv::Point(axisVector.x * 50 + 100, axisVector.y * 50 + 100), 5, cv::Scalar(255, 100, 0), -1);
+
 
 }
 
@@ -285,8 +287,11 @@ inline void Kinect::drawTattoo()
 
 }
 
-inline void Kinect::overlayTattoo(cv::Mat& src, cv::Mat& overlay, const cv::Point& location, const double opacitasdy)
+// overlay an image with another given the point in the middle
+inline void Kinect::overlayTattoo(cv::Mat& src, cv::Mat& overlay, const cv::Point& point, const double opacitasdy)
 {
+	cv::Point location = cv::Point(point.x - (overlay.cols / 2), point.y - (overlay.rows / 2));
+
 #pragma omp parallel for
 	for (int y = cv::max(location.y, 0); y < src.rows; ++y) {
 		int fY = y - location.y;
