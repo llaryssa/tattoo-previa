@@ -219,17 +219,17 @@ inline void Kinect::updateTattoo()
 	//cv::Point2f center = cv::Point2f(round(tattooSrcMat.cols / 2), round(tattooSrcMat.rows / 2));
 	cv::Point2f center = cv::Point2f(round(tattooMat.cols / 2), round(tattooMat.rows / 2));
 
-	// angulo do vetor entre os pontos desejados
+	// vetor normalizado entre os pontos desejados
 	cv::Point2f vector = cv::Point2f(rightHand.x - rightElbow.x, rightHand.y - rightElbow.y);
 	float norm = sqrt((vector.x*vector.x) + (vector.y*vector.y));
 	vector.x /= norm;
 	vector.y /= norm;
 
-	cv::Point2f axisVector = cv::Point2f(0, 0);
+	cv::Point2f axisVector = cv::Point2f(0, 1);
 
-	double cossine = (axisVector.x * vector.x) + (axisVector.y + vector.y);
+	// angulo do vetor entre os pontos desejados
+	double cossine = (axisVector.x * vector.x) + (axisVector.y * vector.y);
 	double angleInRadians = acos(cossine);
-
 	double angle = angleInRadians*(57.2958);    // in degrees / counter-clockwise
 	double scale = norm / (tattooSrcMat.rows*2);
 
@@ -237,22 +237,18 @@ inline void Kinect::updateTattoo()
 	cv::Mat R = cv::getRotationMatrix2D(center, angle, scale);
 	cv::warpAffine(tattooSrcMat, tattooMat, R, tattooSrcMat.size(), cv::INTER_CUBIC);
 
-	// define its location
+	// define its location (meio do antebraco)
 	tattooLocation = cv::Point((rightElbow.x + rightHand.x) / 2, (rightElbow.y + rightHand.y) / 2);
 
-	std::cout << tattooSrcMat.rows << " : " << norm << std::endl;
 
+
+
+
+
+	/////////////////////////////////// testes /////////////////////////////////////////////
+	// mostrando o vetor do braco e o angulo (teste)
 	cv::line(colorMat, rightHand, rightElbow, cv::Scalar(255, 0, 0), 3);
-	//cv::circle(tattooMat, center, 10, cv::Scalar(0, 0, 200), -1);
-	cv::putText(colorMat, std::to_string(angle) + " / " + std::to_string(cossine), rightElbow, cv::FONT_HERSHEY_SCRIPT_SIMPLEX, 1.5, cv::Scalar(0,255,0), 3);
-
-
-	cv::line(colorMat, cv::Point(100,100), cv::Point(vector.x*50+100, vector.y*50+100), cv::Scalar(255, 100, 0), 3);
-	cv::circle(colorMat, cv::Point(vector.x * 50 + 100, vector.y * 50 + 100), 5, cv::Scalar(255, 100, 0), -1);
-
-	cv::line(colorMat, cv::Point(100, 100), cv::Point(axisVector.x * 50 + 100, axisVector.y * 50 + 100), cv::Scalar(255, 100, 0), 3);
-	cv::circle(colorMat, cv::Point(axisVector.x * 50 + 100, axisVector.y * 50 + 100), 5, cv::Scalar(255, 100, 0), -1);
-
+	cv::putText(colorMat, std::to_string(angle), rightElbow, cv::FONT_HERSHEY_SCRIPT_SIMPLEX, 1.5, cv::Scalar(0,255,0), 3);
 
 }
 
