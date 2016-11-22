@@ -219,10 +219,6 @@ inline void Kinect::updateBody()
 inline void Kinect::updateTattoo()
 {
 
-	std::cout << "target1: " << target1.x << ", " << target1.y << " , " << target1.z << std::endl;
-	std::cout << "target2: " << target2.x << ", " << target2.y << " , " << target2.z << std::endl;
-
-
 	// centro da imagem
 	//cv::Point2f center = cv::Point2f(round(tattooSrcMat.cols / 2), round(tattooSrcMat.rows / 2));
 	cv::Point2f center = cv::Point2f(round(tattooMat.cols / 2), round(tattooMat.rows / 2));
@@ -233,7 +229,7 @@ inline void Kinect::updateTattoo()
 	vector.x /= norm;
 	vector.y /= norm;
 
-	cv::Point2f axisVector = cv::Point2f(0, 1);
+	cv::Point2f axisVector(0, 1);
 	float factor = 1;
 
 	// angulo do vetor entre os pontos desejados
@@ -247,21 +243,36 @@ inline void Kinect::updateTattoo()
 	double angle = factor * angleInRadians*(57.2958);    // in degrees / counter-clockwise
 	double scale = norm / (tattooSrcMat.rows*2);
 
-	//// transform tattoo
-	//cv::Mat R = cv::getRotationMatrix2D(center, angle, scale);
-	//cv::warpAffine(tattooSrcMat, tattooMat, R, tattooSrcMat.size(), cv::INTER_CUBIC);
+	// transform tattoo
+	cv::Mat R = cv::getRotationMatrix2D(center, angle, scale);
+	cv::warpAffine(tattooSrcMat, tattooMat, R, tattooSrcMat.size(), cv::INTER_CUBIC);
 
 
 
 
 	///////////////////////////////////////
 
-	CameraIntrinsics calib;
-	coordinateMapper->GetDepthCameraIntrinsics(&calib);
-	rotateImage(tattooSrcMat, tattooMat, target2 - target1, -angle, 0, 0, 1000, calib.FocalLengthX, calib.FocalLengthY);
+	//CameraIntrinsics calib;
+	//coordinateMapper->GetDepthCameraIntrinsics(&calib);
+	//cv::Point3f vector3d = target2 - target1;
+	//float norm3d = sqrt((vector3d.x*vector3d.x) + (vector3d.y*vector3d.y) + (vector3d.z*vector3d.z));
+	//vector3d.x /= norm3d;
+	//vector3d.y /= norm3d;
+	//vector3d.z /= norm3d;
 
-	std::cout << "scale: " << scale << std::endl;
-	std::cout << "principal point: " << calib.PrincipalPointX << ", " << calib.PrincipalPointY << std::endl << std::endl;
+	//cv::Point3f axisX(1, 0, 0);
+	//cv::Point3f axisY(0, 1, 0);
+	//cv::Point3f axisZ(0, 0, 1);
+
+	//double cos_alpha = (axisX.x * vector3d.x) + (axisX.y * vector3d.y) + (axisX.z * vector3d.z);
+	//double cos_beta = (axisY.x * vector3d.x) + (axisY.y * vector3d.y) + (axisY.z * vector3d.z);
+	//double cos_gamma = (axisZ.x * vector3d.x) + (axisZ.y * vector3d.y) + (axisZ.z * vector3d.z);
+	//
+	//double alpha = acos(cos_alpha);
+	//double beta = acos(cos_beta);
+	//double gamma = acos(cos_gamma);
+
+	//rotateImage(tattooSrcMat, tattooMat, alpha, beta, gamma, 0, 0, 1000, calib.FocalLengthX, calib.FocalLengthY);
 
 	//////////////////////////////////////////////////
 
@@ -284,7 +295,7 @@ inline void Kinect::updateTattoo()
 	//// mostrando o vetor do braco e o angulo (teste)
 	cv::line(colorMat, rightHand, rightElbow, cv::Scalar(255, 0, 0), 3);
 	//cv::putText(colorMat, std::to_string(cossine), rightElbow, cv::FONT_HERSHEY_SCRIPT_SIMPLEX, 1.5, cv::Scalar(0,255,0), 3);
-	cv::putText(colorMat, std::to_string(angle), rightElbow, cv::FONT_HERSHEY_SCRIPT_SIMPLEX, 1.5, cv::Scalar(0, 255, 0), 3);
+	//cv::putText(colorMat, std::to_string(angle), rightElbow, cv::FONT_HERSHEY_SCRIPT_SIMPLEX, 1.5, cv::Scalar(0, 255, 0), 3);
 
 }
 
@@ -312,15 +323,7 @@ inline void Kinect::drawColor()
 // Draw Color
 inline void Kinect::drawTattoo()
 {
-
-	std::cout << tattooLocation << std::endl;
 	overlayTattoo(colorMat, tattooMat, tattooLocation, .85);
-	cv::circle(colorMat, tattooLocation, 20, cv::Scalar(0, 0, 0));
-
-	// Primeiro botão na tela
-	Point x = 0;
-	Point y = 500;
-	cv::circle(colorMat, (x, y), 200, cv::Scalar(0, 0, 255));
 }
 
 // overlay an image with another given the point in the middle
@@ -407,6 +410,67 @@ inline void Kinect::rotateImage(const cv::Mat &input, cv::Mat &output, cv::Point
 	//Mat R = RX * RY * RZ;
 	mat.convertTo(mat, A1.type());
 	cv::Mat R = mat * RZ;
+
+	// Translation matrix
+	cv::Mat T = (cv::Mat_<double>(4, 4) <<
+		1, 0, 0, dx,
+		0, 1, 0, dy,
+		0, 0, 1, dz,
+		0, 0, 0, 1);
+
+	// 3D -> 2D matrix
+	cv::Mat A2 = (cv::Mat_<double>(3, 4) <<
+		fx, 0, w / 2, 0,
+		0, fy, h / 2, 0,
+		0, 0, 1, 0);
+
+
+	// Final transformation matrix
+	cv::Mat trans = A2 * (T * (R * A1));
+
+
+	// Apply matrix transformation
+	cv::warpPerspective(input, output, trans, input.size(), cv::INTER_LANCZOS4);
+}
+
+inline void Kinect::rotateImage(const cv::Mat &input, cv::Mat &output, double alpha, double beta, double gamma, double dx, double dy, double dz, double fx, double fy)
+{
+
+	//alpha = (alpha)*CV_PI / 180.;
+	//beta = (beta)*CV_PI / 180.;
+	//gamma = (gamma)*CV_PI / 180.;
+
+	// get width and height for ease of use in matrices
+	double w = (double)input.cols;
+	double h = (double)input.rows;
+
+	// Projection 2D -> 3D matrix
+	cv::Mat A1 = (cv::Mat_<double>(4, 3) <<
+		1, 0, -w / 2,
+		0, 1, -h / 2,
+		0, 0, 0,
+		0, 0, 1);
+
+	// Rotation matrices around the X, Y, and Z axis
+	Mat RX = (Mat_<double>(4, 4) <<
+		1, 0, 0, 0,
+		0, cos(alpha), -sin(alpha), 0,
+		0, sin(alpha), cos(alpha), 0,
+		0, 0, 0, 1);
+	Mat RY = (Mat_<double>(4, 4) <<
+		cos(beta), 0, -sin(beta), 0,
+		0, 1, 0, 0,
+		sin(beta), 0, cos(beta), 0,
+		0, 0, 0, 1);
+	cv::Mat RZ = (cv::Mat_<double>(4, 4) <<
+		cos(gamma), -sin(gamma), 0, 0,
+		sin(gamma), cos(gamma), 0, 0,
+		0, 0, 1, 0,
+		0, 0, 0, 1);
+
+	// Composed rotation matrix with (RX, RY, RZ)
+	Mat R = RX * RY * RZ;
+
 
 	// Translation matrix
 	cv::Mat T = (cv::Mat_<double>(4, 4) <<
