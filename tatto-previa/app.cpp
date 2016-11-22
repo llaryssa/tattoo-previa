@@ -11,6 +11,8 @@
 
 #include <omp.h>
 
+using namespace cv;
+
 // Constructor
 Kinect::Kinect()
 {
@@ -315,6 +317,10 @@ inline void Kinect::drawTattoo()
 	overlayTattoo(colorMat, tattooMat, tattooLocation, .85);
 	cv::circle(colorMat, tattooLocation, 20, cv::Scalar(0, 0, 0));
 
+	// Primeiro botão na tela
+	Point x = 0;
+	Point y = 500;
+	cv::circle(colorMat, (x, y), 200, cv::Scalar(0, 0, 255));
 }
 
 // overlay an image with another given the point in the middle
