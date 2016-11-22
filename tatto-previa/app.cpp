@@ -31,7 +31,8 @@ void Kinect::setTattoo(char* filename)
 	tattooSrcMat = cv::imread(filename, -1);
 	tattooMat = tattooSrcMat.clone();
 	if (!tattooMat.data) {
-		std::cout << "NAO TEM IMAGEM";
+		std::cout << "ERROR: There is no image" << std::endl;
+		ERROR("There is no image");
 	}
 }
 
@@ -215,6 +216,11 @@ inline void Kinect::updateBody()
 // Update Image
 inline void Kinect::updateTattoo()
 {
+
+	std::cout << "target1: " << target1.x << ", " << target1.y << " , " << target1.z << std::endl;
+	std::cout << "target2: " << target2.x << ", " << target2.y << " , " << target2.z << std::endl;
+
+
 	// centro da imagem
 	//cv::Point2f center = cv::Point2f(round(tattooSrcMat.cols / 2), round(tattooSrcMat.rows / 2));
 	cv::Point2f center = cv::Point2f(round(tattooMat.cols / 2), round(tattooMat.rows / 2));
@@ -226,29 +232,57 @@ inline void Kinect::updateTattoo()
 	vector.y /= norm;
 
 	cv::Point2f axisVector = cv::Point2f(0, 1);
+	float factor = 1;
 
 	// angulo do vetor entre os pontos desejados
 	double cossine = (axisVector.x * vector.x) + (axisVector.y * vector.y);
+
+	// z value of the cross product
+	if ((vector.x*axisVector.y - vector.y*axisVector.x) < 0)
+		factor = -1;
+	
 	double angleInRadians = acos(cossine);
-	double angle = angleInRadians*(57.2958);    // in degrees / counter-clockwise
+	double angle = factor * angleInRadians*(57.2958);    // in degrees / counter-clockwise
 	double scale = norm / (tattooSrcMat.rows*2);
 
-	// transform tattoo
-	cv::Mat R = cv::getRotationMatrix2D(center, angle, scale);
-	cv::warpAffine(tattooSrcMat, tattooMat, R, tattooSrcMat.size(), cv::INTER_CUBIC);
-
-	// define its location (meio do antebraco)
-	tattooLocation = cv::Point((rightElbow.x + rightHand.x) / 2, (rightElbow.y + rightHand.y) / 2);
+	//// transform tattoo
+	//cv::Mat R = cv::getRotationMatrix2D(center, angle, scale);
+	//cv::warpAffine(tattooSrcMat, tattooMat, R, tattooSrcMat.size(), cv::INTER_CUBIC);
 
 
 
 
+	///////////////////////////////////////
+
+	CameraIntrinsics calib;
+	coordinateMapper->GetDepthCameraIntrinsics(&calib);
+	rotateImage(tattooSrcMat, tattooMat, target2 - target1, -angle, 0, 0, 1000, calib.FocalLengthX, calib.FocalLengthY);
+
+	std::cout << "scale: " << scale << std::endl;
+	std::cout << "principal point: " << calib.PrincipalPointX << ", " << calib.PrincipalPointY << std::endl << std::endl;
+
+	//////////////////////////////////////////////////
 
 
-	/////////////////////////////////// testes /////////////////////////////////////////////
-	// mostrando o vetor do braco e o angulo (teste)
+
+	// pega o vetor 3d e projeta o ponto medio dele nas coord de tela
+	CameraSpacePoint* cameraLocationPoint = new CameraSpacePoint();
+	cameraLocationPoint->X = (target1.x + target2.x) / 2;
+	cameraLocationPoint->Y = (target1.y + target2.y) / 2;
+	cameraLocationPoint->Z = (target1.z + target2.z) / 2;
+	ColorSpacePoint colorLocationPoint;
+	ERROR_CHECK(coordinateMapper->MapCameraPointToColorSpace(*cameraLocationPoint, &colorLocationPoint));
+	// define the tattoo print location
+	tattooLocation = cv::Point(colorLocationPoint.X, colorLocationPoint.Y);
+
+
+
+
+	///////////////////////////////////// testes /////////////////////////////////////////////
+	//// mostrando o vetor do braco e o angulo (teste)
 	cv::line(colorMat, rightHand, rightElbow, cv::Scalar(255, 0, 0), 3);
-	cv::putText(colorMat, std::to_string(angle), rightElbow, cv::FONT_HERSHEY_SCRIPT_SIMPLEX, 1.5, cv::Scalar(0,255,0), 3);
+	//cv::putText(colorMat, std::to_string(cossine), rightElbow, cv::FONT_HERSHEY_SCRIPT_SIMPLEX, 1.5, cv::Scalar(0,255,0), 3);
+	cv::putText(colorMat, std::to_string(angle), rightElbow, cv::FONT_HERSHEY_SCRIPT_SIMPLEX, 1.5, cv::Scalar(0, 255, 0), 3);
 
 }
 
@@ -317,6 +351,79 @@ inline void Kinect::overlayTattoo(cv::Mat& src, cv::Mat& overlay, const cv::Poin
 }
 
 
+inline void Kinect::rotateImage(const cv::Mat &input, cv::Mat &output, cv::Point3f rotationVector, double gamma, double dx, double dy, double dz, double fx, double fy)
+{
+	cv::Mat mat;
+	cv::Rodrigues(cv::Mat(rotationVector), mat);
+
+
+	double zer[3] = { 0.0 };
+	double zer1[4] = { 0.0 };
+	cv::vconcat(mat, cv::Mat(1, 3, CV_32F, zer), mat);
+	cv::hconcat(mat, cv::Mat(4, 1, CV_32F, zer1), mat);
+	mat.at<float>(3, 3) = 1.0;
+
+
+	//alpha = (alpha)*CV_PI / 180.;
+	//beta = (beta)*CV_PI / 180.;
+	gamma = (gamma)*CV_PI / 180.;
+
+	// get width and height for ease of use in matrices
+	double w = (double)input.cols;
+	double h = (double)input.rows;
+
+	// Projection 2D -> 3D matrix
+	cv::Mat A1 = (cv::Mat_<double>(4, 3) <<
+		1, 0, -w / 2,
+		0, 1, -h / 2,
+		0, 0, 0,
+		0, 0, 1);
+
+	//// Rotation matrices around the X, Y, and Z axis
+	//Mat RX = (Mat_<double>(4, 4) <<
+	//	1, 0, 0, 0,
+	//	0, cos(alpha), -sin(alpha), 0,
+	//	0, sin(alpha), cos(alpha), 0,
+	//	0, 0, 0, 1);
+	//Mat RY = (Mat_<double>(4, 4) <<
+	//	cos(beta), 0, -sin(beta), 0,
+	//	0, 1, 0, 0,
+	//	sin(beta), 0, cos(beta), 0,
+	//	0, 0, 0, 1);
+
+	cv::Mat RZ = (cv::Mat_<double>(4, 4) <<
+		cos(gamma), -sin(gamma), 0, 0,
+		sin(gamma), cos(gamma), 0, 0,
+		0, 0, 1, 0,
+		0, 0, 0, 1);
+
+	// Composed rotation matrix with (RX, RY, RZ)
+	//Mat R = RX * RY * RZ;
+	mat.convertTo(mat, A1.type());
+	cv::Mat R = mat * RZ;
+
+	// Translation matrix
+	cv::Mat T = (cv::Mat_<double>(4, 4) <<
+		1, 0, 0, dx,
+		0, 1, 0, dy,
+		0, 0, 1, dz,
+		0, 0, 0, 1);
+
+	// 3D -> 2D matrix
+	cv::Mat A2 = (cv::Mat_<double>(3, 4) <<
+		fx, 0, w / 2, 0,
+		0, fy, h / 2, 0,
+		0, 0, 1, 0);
+
+
+	// Final transformation matrix
+	cv::Mat trans = A2 * (T * (R * A1));
+
+
+	// Apply matrix transformation
+	cv::warpPerspective(input, output, trans, input.size(), cv::INTER_LANCZOS4);
+}
+
 // Draw Body
 inline void Kinect::drawBody()
 {
@@ -379,6 +486,10 @@ inline void Kinect::drawBody()
 				const int x = static_cast<int>(colorSpacePoint.X + 0.5f);
 				const int y = static_cast<int>(colorSpacePoint.Y + 0.5f);
 				rightHand = cv::Point(x, y);
+
+				///////////////////////////////
+				CameraSpacePoint cameraPoint = joint.Position;
+				target1 = cv::Point3d(cameraPoint.X, cameraPoint.Y, cameraPoint.Z);
 			}
 
 			if (joint.JointType == JointType::JointType_ElbowRight) {
@@ -387,6 +498,10 @@ inline void Kinect::drawBody()
 				const int x = static_cast<int>(colorSpacePoint.X + 0.5f);
 				const int y = static_cast<int>(colorSpacePoint.Y + 0.5f);
 				rightElbow = cv::Point(x, y);
+
+				///////////////////////////////
+				CameraSpacePoint cameraPoint = joint.Position;
+				target2 = cv::Point3d(cameraPoint.X, cameraPoint.Y, cameraPoint.Z);
 			}
 	
 		}

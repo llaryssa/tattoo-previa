@@ -34,8 +34,12 @@ private:
 	cv::Mat colorMat, tattooSrcMat, tattooMat;
 	cv::Point tattooLocation;
 
+
 	cv::Point rightElbow;
 	cv::Point rightHand;
+
+	cv::Point3d target1;
+	cv::Point3d target2;
 
 	// Body Buffer
 	std::array<IBody*, BODY_COUNT> bodies;
@@ -94,9 +98,11 @@ private:
 	// Draw Tattoo
 	inline void drawTattoo();
 
-	// Draw Hand State
+	// Auxiliary for the tattoo
 	inline void overlayTattoo(cv::Mat& src, cv::Mat& overlay, const cv::Point& location, const double opacity);
-	
+	//inline void rotateImage(const cv::Mat &input, cv::Mat &output, cv::Point3f rotationVector, double dx, double dy, double dz, double f);
+	inline void Kinect::rotateImage(const cv::Mat &input, cv::Mat &output, cv::Point3f rotationVector, double gamma, double dx, double dy, double dz, double fx, double fy);
+
 	// Draw Body
 	inline void drawBody();
 
