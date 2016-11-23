@@ -324,6 +324,20 @@ inline void Kinect::drawColor()
 inline void Kinect::drawTattoo()
 {
 	overlayTattoo(colorMat, tattooMat, tattooLocation, .85);
+	
+	// Primeiro botão na tela
+	Point botao = 900;
+	botao.x = 1500;
+	botao.y = 0;
+	cv::circle(colorMat, botao, 200, cv::Scalar(0, 0, 255));
+
+	if (tattooLocation.y <= 300) {
+		if (tattooLocation.x >= 1300) {
+			// colocar aqui ação que deve acontecer quando a mão passar no botão
+			// nesse exemplo, bip emitido
+			puts("\a");
+		}
+	}
 }
 
 // overlay an image with another given the point in the middle
