@@ -38,8 +38,16 @@ private:
 	cv::Point rightElbow;
 	cv::Point rightHand;
 
+	cv::Point leftHand;
+
 	cv::Point3d target1;
 	cv::Point3d target2;
+
+	// For UI
+	cv::Point buttonBiggerLocation;
+	cv::Point buttonSmallerLocation;
+	float buttonRadius = 80;
+	float zoomFactor = 1;
 
 	// Body Buffer
 	std::array<IBody*, BODY_COUNT> bodies;
@@ -65,6 +73,9 @@ private:
 	// Initialize Sensor
 	inline void initializeSensor();
 
+	//// Initialize UI
+	//inline void initializeUI();
+
 	// Initialize Tattoo
 	inline void initializeTattoo();
 
@@ -88,6 +99,9 @@ private:
 
 	// Update Tattoo
 	inline void updateTattoo();
+
+	// Update UI
+	inline void updateUI();
 
 	// Draw Data
 	void draw();

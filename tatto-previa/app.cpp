@@ -11,8 +11,6 @@
 
 #include <omp.h>
 
-using namespace cv;
-
 // Constructor
 Kinect::Kinect()
 {
@@ -180,6 +178,9 @@ void Kinect::update()
 
 	// Update Tattoo
 	updateTattoo();
+
+	// Update UI
+	updateUI();
 }
 
 // Update Color
@@ -219,6 +220,19 @@ inline void Kinect::updateBody()
 inline void Kinect::updateTattoo()
 {
 
+	const double distLeftHandButBigger = cv::norm(leftHand - buttonBiggerLocation);
+	const double distLeftHandButSmaller = cv::norm(leftHand - buttonSmallerLocation);
+	const double distRightHandButBigger = cv::norm(rightHand - buttonBiggerLocation);
+	const double distRightHandButSmaller = cv::norm(rightHand - buttonSmallerLocation);
+	if (distLeftHandButBigger < buttonRadius || distRightHandButBigger < buttonRadius) {
+		zoomFactor = zoomFactor * 1.02;
+	}
+	if (distLeftHandButSmaller < buttonRadius || distRightHandButSmaller < buttonRadius) {
+		zoomFactor = zoomFactor * 0.98;
+	}
+
+
+
 	// centro da imagem
 	//cv::Point2f center = cv::Point2f(round(tattooSrcMat.cols / 2), round(tattooSrcMat.rows / 2));
 	cv::Point2f center = cv::Point2f(round(tattooMat.cols / 2), round(tattooMat.rows / 2));
@@ -242,6 +256,7 @@ inline void Kinect::updateTattoo()
 	double angleInRadians = acos(cossine);
 	double angle = factor * angleInRadians*(57.2958);    // in degrees / counter-clockwise
 	double scale = norm / (tattooSrcMat.rows*2);
+	scale *= zoomFactor;
 
 	// transform tattoo
 	cv::Mat R = cv::getRotationMatrix2D(center, angle, scale);
@@ -299,6 +314,30 @@ inline void Kinect::updateTattoo()
 
 }
 
+void Kinect::updateUI()
+{
+	buttonRadius = 110;
+	const float padding = 30;
+
+	buttonBiggerLocation = cv::Point2d(250 + buttonRadius + padding, colorMat.rows - buttonRadius - padding);
+	buttonSmallerLocation = cv::Point2d(250 + buttonRadius * 3 + 2 * padding, colorMat.rows - buttonRadius - padding);
+
+	const int fontFace = cv::FONT_HERSHEY_DUPLEX;
+	const float fontScale = 5;
+	const float fontThickness = 10;
+	const cv::Scalar fontColor = cv::Scalar::all(255);
+	const cv::Scalar buttonColor = cv::Scalar::all(60);
+
+	cv::Size textSizePlus = cv::getTextSize("+", cv::FONT_HERSHEY_DUPLEX, fontScale, fontThickness, 0);
+	cv::Size textSizeMinus = cv::getTextSize("-", cv::FONT_HERSHEY_DUPLEX, fontScale, fontThickness, 0);
+
+	cv::circle(colorMat, buttonBiggerLocation, buttonRadius, buttonColor, -1);
+	cv::putText(colorMat, "+", buttonBiggerLocation + cv::Point(-62, 50), fontFace, fontScale, fontColor, fontThickness);
+
+	cv::circle(colorMat, buttonSmallerLocation, buttonRadius, buttonColor, -1);
+	cv::putText(colorMat, "-", buttonSmallerLocation + cv::Point(-65, 50), fontFace, fontScale, fontColor, fontThickness);
+}
+
 // Draw Data
 void Kinect::draw()
 {
@@ -324,20 +363,6 @@ inline void Kinect::drawColor()
 inline void Kinect::drawTattoo()
 {
 	overlayTattoo(colorMat, tattooMat, tattooLocation, .85);
-	
-	// Primeiro botão na tela
-	Point botao = 900;
-	botao.x = 1500;
-	botao.y = 0;
-	cv::circle(colorMat, botao, 200, cv::Scalar(0, 0, 255));
-
-	if (tattooLocation.y <= 300) {
-		if (tattooLocation.x >= 1300) {
-			// colocar aqui ação que deve acontecer quando a mão passar no botão
-			// nesse exemplo, bip emitido
-			puts("\a");
-		}
-	}
 }
 
 // overlay an image with another given the point in the middle
@@ -466,12 +491,12 @@ inline void Kinect::rotateImage(const cv::Mat &input, cv::Mat &output, double al
 		0, 0, 1);
 
 	// Rotation matrices around the X, Y, and Z axis
-	Mat RX = (Mat_<double>(4, 4) <<
+	cv::Mat RX = (cv::Mat_<double>(4, 4) <<
 		1, 0, 0, 0,
 		0, cos(alpha), -sin(alpha), 0,
 		0, sin(alpha), cos(alpha), 0,
 		0, 0, 0, 1);
-	Mat RY = (Mat_<double>(4, 4) <<
+	cv::Mat RY = (cv::Mat_<double>(4, 4) <<
 		cos(beta), 0, -sin(beta), 0,
 		0, 1, 0, 0,
 		sin(beta), 0, cos(beta), 0,
@@ -483,7 +508,7 @@ inline void Kinect::rotateImage(const cv::Mat &input, cv::Mat &output, double al
 		0, 0, 0, 1);
 
 	// Composed rotation matrix with (RX, RY, RZ)
-	Mat R = RX * RY * RZ;
+	cv::Mat R = RX * RY * RZ;
 
 
 	// Translation matrix
@@ -564,6 +589,14 @@ inline void Kinect::drawBody()
 
 
 			// TESTE
+			if (joint.JointType == JointType::JointType_HandLeft) {
+				ColorSpacePoint colorSpacePoint;
+				ERROR_CHECK(coordinateMapper->MapCameraPointToColorSpace(joint.Position, &colorSpacePoint));
+				const int x = static_cast<int>(colorSpacePoint.X + 0.5f);
+				const int y = static_cast<int>(colorSpacePoint.Y + 0.5f);
+				leftHand = cv::Point(x, y);
+			}
+
 			if (joint.JointType == JointType::JointType_HandRight) {
 				ColorSpacePoint colorSpacePoint;
 				ERROR_CHECK(coordinateMapper->MapCameraPointToColorSpace(joint.Position, &colorSpacePoint));
