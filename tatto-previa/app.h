@@ -46,6 +46,8 @@ private:
 	// For UI
 	cv::Point buttonBiggerLocation;
 	cv::Point buttonSmallerLocation;
+	cv::Point buttonImageLocation;
+	cv::Point buttonNextLocation;
 	float buttonRadius = 80;
 	float zoomFactor = 1;
 
