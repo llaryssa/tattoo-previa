@@ -14,8 +14,8 @@ void rotateImage(const cv::Mat &input, cv::Mat &output, cv::Point3f rotationVect
 int main(int argc, char* argv[])
 {
 	
-	//char* filename = "C:/Users/Laryssa/Documents/tattoo-previa/tatto-previa/images/rose.png";
-	char* filename = "C:/Users/Laryssa/Documents/tattoo-previa/tatto-previa/images/lena.png";
+	//char* filename = "C:/Users/Laryssa/Documents/tattoo-previa/tatto-previa/images/lena.png";
+	char* filename = "C:/Users/Laryssa/Documents/tattoo-previa/tatto-previa/images/rose.png";
 
 
 
