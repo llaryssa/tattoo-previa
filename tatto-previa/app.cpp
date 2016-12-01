@@ -677,6 +677,7 @@ inline void Kinect::drawHandState(cv::Mat& image, const Joint& joint, HandState 
 		return;
 	}
 
+
 	// Draw Hand State 
 	const int radius = 75;
 	const cv::Vec3b blue = cv::Vec3b(128, 0, 0), green = cv::Vec3b(0, 128, 0), red = cv::Vec3b(0, 0, 128);
@@ -719,6 +720,7 @@ inline void Kinect::showBody()
 
 	// Show Image
 	cv::imshow("Body", resizeMat);
+	changeTattoo();
 	nextTattoo();
 }
 
@@ -731,5 +733,14 @@ inline void Kinect::nextTattoo(){
 		cv::Mat image;
 		image = imread(imageName, cv::IMREAD_COLOR); // Read the file
 		cv::imshow("Next image", image);
+	}
+}
+
+inline void Kinect::changeTattoo(){
+	const double distLeftHandButNext = cv::norm(leftHand - buttonImageLocation);
+	const double distRightHandButNext = cv::norm(rightHand - buttonImageLocation);
+	if (distLeftHandButNext < buttonRadius || distRightHandButNext < buttonRadius) {
+		//colocar aqui ação que deve acontecer quando a mão passar no botão 
+		tattooSrcMat = cv::imread("C:/Users/projeto/Desktop/tattoo-previa-master/tatto-previa/images/windows.png", -1);
 	}
 }
