@@ -719,4 +719,20 @@ inline void Kinect::showBody()
 
 	// Show Image
 	cv::imshow("Body", resizeMat);
+	nextTattoo();
+}
+
+inline void Kinect::nextTattoo(){
+	cv::String imageName("C:/Users/projeto/Desktop/tattoo-previa-master/tatto-previa/images/lena.png"); // by default
+	cv::Mat image;
+	const double distLeftHandButNext = cv::norm(leftHand - buttonNextLocation);
+	const double distRightHandButNext = cv::norm(rightHand - buttonNextLocation);
+	if (distLeftHandButNext < buttonRadius || distRightHandButNext < buttonRadius) {
+		// colocar aqui ação que deve acontecer quando a mão passar no botão 
+		// nesse exemplo, bip emitido 
+		cv::String imageName("C:/Users/projeto/Desktop/tattoo-previa-master/tatto-previa/images/lena.png"); // by default
+		cv::Mat image;
+		image = imread(imageName, cv::IMREAD_COLOR); // Read the file
+		cv::imshow("Next image", image);
+	}
 }
