@@ -91,6 +91,7 @@ private:
 	// Finalize
 	void finalize();
 
+
 	// Update Data
 	void update();
 
@@ -141,6 +142,9 @@ private:
 	
 	// Next Tattoo
 	inline void nextTattoo();
+	
+	// Change Tattoo
+	inline void changeTattoo();
 };
 
 #endif // __APP__
