@@ -723,8 +723,6 @@ inline void Kinect::showBody()
 }
 
 inline void Kinect::nextTattoo(){
-	cv::String imageName("C:/Users/projeto/Desktop/tattoo-previa-master/tatto-previa/images/lena.png"); // by default
-	cv::Mat image;
 	const double distLeftHandButNext = cv::norm(leftHand - buttonNextLocation);
 	const double distRightHandButNext = cv::norm(rightHand - buttonNextLocation);
 	if (distLeftHandButNext < buttonRadius || distRightHandButNext < buttonRadius) {
