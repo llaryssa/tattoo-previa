@@ -298,6 +298,7 @@ inline void Kinect::updateTattoo()
 	cameraLocationPoint->X = (target1.x + target2.x) / 2;
 	cameraLocationPoint->Y = (target1.y + target2.y) / 2;
 	cameraLocationPoint->Z = (target1.z + target2.z) / 2;
+
 	ColorSpacePoint colorLocationPoint;
 	ERROR_CHECK(coordinateMapper->MapCameraPointToColorSpace(*cameraLocationPoint, &colorLocationPoint));
 	// define the tattoo print location
@@ -321,6 +322,8 @@ void Kinect::updateUI()
 
 	buttonBiggerLocation = cv::Point2d(250 + buttonRadius + padding, colorMat.rows - buttonRadius - padding);
 	buttonSmallerLocation = cv::Point2d(250 + buttonRadius * 3 + 2 * padding, colorMat.rows - buttonRadius - padding);
+	buttonImageLocation = cv::Point2d(250 + buttonRadius + padding, colorMat.rows - buttonRadius * 3 - 2 * padding);
+	buttonNextLocation = cv::Point2d(250 + buttonRadius * 3 + 2 * padding, colorMat.rows - buttonRadius * 3 - 2 * padding);
 
 	const int fontFace = cv::FONT_HERSHEY_DUPLEX;
 	const float fontScale = 5;
@@ -330,12 +333,20 @@ void Kinect::updateUI()
 
 	cv::Size textSizePlus = cv::getTextSize("+", cv::FONT_HERSHEY_DUPLEX, fontScale, fontThickness, 0);
 	cv::Size textSizeMinus = cv::getTextSize("-", cv::FONT_HERSHEY_DUPLEX, fontScale, fontThickness, 0);
+	cv::Size textSizeImg = cv::getTextSize("C", cv::FONT_HERSHEY_DUPLEX, fontScale, fontThickness, 0);
+	cv::Size textSizeNext = cv::getTextSize(">", cv::FONT_HERSHEY_DUPLEX, fontScale, fontThickness, 0);
 
 	cv::circle(colorMat, buttonBiggerLocation, buttonRadius, buttonColor, -1);
 	cv::putText(colorMat, "+", buttonBiggerLocation + cv::Point(-62, 50), fontFace, fontScale, fontColor, fontThickness);
 
 	cv::circle(colorMat, buttonSmallerLocation, buttonRadius, buttonColor, -1);
 	cv::putText(colorMat, "-", buttonSmallerLocation + cv::Point(-65, 50), fontFace, fontScale, fontColor, fontThickness);
+	
+	cv::circle(colorMat, buttonImageLocation, buttonRadius, buttonColor, -1);
+	cv::putText(colorMat, "C", buttonImageLocation + cv::Point(-62, 47), fontFace, fontScale, fontColor, fontThickness);
+
+	cv::circle(colorMat, buttonNextLocation, buttonRadius, buttonColor, -1);
+	cv::putText(colorMat, ">", buttonNextLocation + cv::Point(-65, 47), fontFace, fontScale, fontColor, fontThickness);
 }
 
 // Draw Data
