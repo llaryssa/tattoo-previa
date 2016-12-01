@@ -62,6 +62,7 @@ public:
 	// Destructor
 	~Kinect();
 
+	
 	// Load the tattoo file
 	void setTattoo(char* filename);
 
@@ -137,6 +138,9 @@ private:
 
 	// Show Body
 	inline void showBody();
+	
+	// Next Tattoo
+	inline void nextTattoo();
 };
 
 #endif // __APP__
