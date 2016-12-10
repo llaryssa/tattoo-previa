@@ -729,7 +729,7 @@ inline void Kinect::nextTattoo(){
 	const double distRightHandButNext = cv::norm(rightHand - buttonNextLocation);
 	if (distLeftHandButNext < buttonRadius || distRightHandButNext < buttonRadius) {
 		// colocar aqui ação que deve acontecer quando a mão passar no botão 
-		cv::String imageName("C:/Users/projeto/Desktop/tattoo-previa-master/tatto-previa/images/lena.png"); // by default
+		cv::String imageName("images/lena.png"); // by default
 		cv::Mat image;
 		image = imread(imageName, cv::IMREAD_COLOR); // Read the file
 		cv::imshow("Next image", image);
@@ -741,6 +741,6 @@ inline void Kinect::changeTattoo(){
 	const double distRightHandButNext = cv::norm(rightHand - buttonImageLocation);
 	if (distLeftHandButNext < buttonRadius || distRightHandButNext < buttonRadius) {
 		//colocar aqui ação que deve acontecer quando a mão passar no botão 
-		tattooSrcMat = cv::imread("C:/Users/projeto/Desktop/tattoo-previa-master/tatto-previa/images/windows.png", -1);
+		tattooSrcMat = cv::imread("images/windows.png", -1);
 	}
 }
