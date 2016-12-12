@@ -322,13 +322,13 @@ inline void Kinect::updateTattoo()
 
 void Kinect::updateUI()
 {
-	buttonRadius = 110;
+	buttonRadius = 90;
 	const float padding = 30;
 
-	buttonBiggerLocation = cv::Point2d(250 + buttonRadius + padding, colorMat.rows - buttonRadius - padding);
-	buttonSmallerLocation = cv::Point2d(250 + buttonRadius * 3 + 2 * padding, colorMat.rows - buttonRadius - padding);
-	buttonImageLocation = cv::Point2d(250 + buttonRadius + padding, colorMat.rows - buttonRadius * 3 - 2 * padding);
-	buttonNextLocation = cv::Point2d(250 + buttonRadius * 3 + 2 * padding, colorMat.rows - buttonRadius * 3 - 2 * padding);
+	buttonBiggerLocation = cv::Point2d(250 + buttonRadius + padding, colorMat.rows - buttonRadius * 2 - padding);
+	buttonSmallerLocation = cv::Point2d(250 + buttonRadius + padding, colorMat.rows - buttonRadius * 4 - 2 * padding);
+	buttonImageLocation = cv::Point2d(250 + buttonRadius + padding, colorMat.rows - buttonRadius * 6 - 3 * padding);
+	buttonNextLocation = cv::Point2d(250 + buttonRadius + padding, colorMat.rows - buttonRadius * 8 - 4 * padding);
 
 	const int fontFace = cv::FONT_HERSHEY_DUPLEX;
 	const float fontScale = 5;
