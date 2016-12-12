@@ -850,15 +850,15 @@ inline void Kinect::showBody()
 	nextTattoo();
 }
 
+// index of image
+int index = 0;
+
 inline void Kinect::nextTattoo(){
 	const double distLeftHandButNext = cv::norm(leftHand - buttonNextLocation);
 	const double distRightHandButNext = cv::norm(rightHand - buttonNextLocation);
 	if (distLeftHandButNext < buttonRadius || distRightHandButNext < buttonRadius) {
 		// colocar aqui ação que deve acontecer quando a mão passar no botão 
-		cv::String imageName("images/lena.png"); // by default
-		cv::Mat image;
-		image = imread(imageName, cv::IMREAD_COLOR); // Read the file
-		cv::imshow("Next image", image);
+		updateNextImageFrame();
 	}
 }
 
@@ -867,6 +867,29 @@ inline void Kinect::changeTattoo(){
 	const double distRightHandButNext = cv::norm(rightHand - buttonImageLocation);
 	if (distLeftHandButNext < buttonRadius || distRightHandButNext < buttonRadius) {
 		//colocar aqui ação que deve acontecer quando a mão passar no botão 
-		tattooSrcMat = cv::imread("images/windows.png", -1);
+		tattooSrcMat = cv::imread("images/" + imagesPath[index], -1);
+		if (index == 18){
+			index = 0;
+		}
+		else
+		{
+			index++;
+		}
+		updateNextImageFrame();
 	}
+}
+
+void Kinect::updateNextImageFrame()
+{
+	cv::Mat image;
+	if (index == 18){
+		cv::String imageName("images/" + imagesPath[0]);
+		image = imread(imageName, cv::IMREAD_COLOR); // Read the file
+	}
+	else
+	{
+		cv::String imageName("images/" + imagesPath[index + 1]);
+		image = imread(imageName, cv::IMREAD_COLOR); // Read the file
+	}
+	cv::imshow("Next image", image);
 }
