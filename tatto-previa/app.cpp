@@ -30,10 +30,13 @@ void Kinect::setTattoo(char* filename)
 	// -1 is to guarantee that the transparancy is read
 	tattooSrcMat = cv::imread(filename, -1);
 	tattooMat = tattooSrcMat.clone();
+
 	if (!tattooMat.data) {
 		std::cout << "ERROR: There is no image" << std::endl;
 		ERROR("There is no image");
 	}
+
+	tattooSrcMat = cylinderProjection(tattooSrcMat, .5, .8);
 }
 
 // Processing
@@ -102,7 +105,7 @@ inline void Kinect::initializeSensor()
 inline void Kinect::initializeTattoo()
 {
 	rightElbow = cv::Point(0, 0);
-	rightHand = cv::Point(0, 0);
+	rightWrist = cv::Point(0, 0);
 
 	tattooLocation = cv::Point(0, 0);
 }
@@ -220,6 +223,8 @@ inline void Kinect::updateBody()
 inline void Kinect::updateTattoo()
 {
 
+	double prevZoom = zoomFactor;
+
 	const double distLeftHandButBigger = cv::norm(leftHand - buttonBiggerLocation);
 	const double distLeftHandButSmaller = cv::norm(leftHand - buttonSmallerLocation);
 	const double distRightHandButBigger = cv::norm(rightHand - buttonBiggerLocation);
@@ -238,7 +243,7 @@ inline void Kinect::updateTattoo()
 	cv::Point2f center = cv::Point2f(round(tattooMat.cols / 2), round(tattooMat.rows / 2));
 
 	// vetor normalizado entre os pontos desejados
-	cv::Point2f vector = cv::Point2f(rightHand.x - rightElbow.x, rightHand.y - rightElbow.y);
+	cv::Point2f vector = cv::Point2f(rightWrist.x - rightElbow.x, rightWrist.y - rightElbow.y);
 	float norm = sqrt((vector.x*vector.x) + (vector.y*vector.y));
 	vector.x /= norm;
 	vector.y /= norm;
@@ -309,7 +314,7 @@ inline void Kinect::updateTattoo()
 
 	///////////////////////////////////// testes /////////////////////////////////////////////
 	//// mostrando o vetor do braco e o angulo (teste)
-	cv::line(colorMat, rightHand, rightElbow, cv::Scalar(255, 0, 0), 3);
+	//cv::line(colorMat, rightHand, rightElbow, cv::Scalar(255, 0, 0), 3);
 	//cv::putText(colorMat, std::to_string(cossine), rightElbow, cv::FONT_HERSHEY_SCRIPT_SIMPLEX, 1.5, cv::Scalar(0,255,0), 3);
 	//cv::putText(colorMat, std::to_string(angle), rightElbow, cv::FONT_HERSHEY_SCRIPT_SIMPLEX, 1.5, cv::Scalar(0, 255, 0), 3);
 
@@ -374,39 +379,6 @@ inline void Kinect::drawColor()
 inline void Kinect::drawTattoo()
 {
 	overlayTattoo(colorMat, tattooMat, tattooLocation, .85);
-}
-
-// overlay an image with another given the point in the middle
-inline void Kinect::overlayTattoo(cv::Mat& src, cv::Mat& overlay, const cv::Point& point, const double opacitasdy)
-{
-	cv::Point location = cv::Point(point.x - (overlay.cols / 2), point.y - (overlay.rows / 2));
-
-#pragma omp parallel for
-	for (int y = cv::max(location.y, 0); y < src.rows; ++y) {
-		int fY = y - location.y;
-
-		if (fY >= overlay.rows)
-			break;
-
-#pragma omp parallel for
-		for (int x = cv::max(location.x, 0); x < src.cols; ++x) {
-			int fX = x - location.x;
-
-			if (fX >= overlay.cols)
-				break;
-
-			double opacity =
-				((double)overlay.data[fY * overlay.step + fX * overlay.channels() + 3])/255.;
-
-#pragma omp parallel for
-			for (int c = 0; opacity > 0 && c < src.channels(); ++c) {
-				unsigned char overlayPx = overlay.data[fY * overlay.step + fX * overlay.channels() + c];
-				unsigned char srcPx = src.data[y * src.step + x * src.channels() + c];
-				//src.data[y * src.step + src.channels() * x + c] = srcPx * (1. - opacity) + overlayPx * opacity;
-				src.data[y * src.step + src.channels() * x + c] = overlayPx;
-			}
-		}
-	}
 }
 
 
@@ -485,7 +457,6 @@ inline void Kinect::rotateImage(const cv::Mat &input, cv::Mat &output, cv::Point
 
 inline void Kinect::rotateImage(const cv::Mat &input, cv::Mat &output, double alpha, double beta, double gamma, double dx, double dy, double dz, double fx, double fy)
 {
-
 	//alpha = (alpha)*CV_PI / 180.;
 	//beta = (beta)*CV_PI / 180.;
 	//gamma = (gamma)*CV_PI / 180.;
@@ -542,6 +513,153 @@ inline void Kinect::rotateImage(const cv::Mat &input, cv::Mat &output, double al
 
 	// Apply matrix transformation
 	cv::warpPerspective(input, output, trans, input.size(), cv::INTER_LANCZOS4);
+}
+
+// overlay an image with another given the point in the middle
+inline void Kinect::overlayTattoo(cv::Mat& src, cv::Mat& overlay, const cv::Point& point, const double opacitasdy)
+{
+	cv::Point location = cv::Point(point.x - (overlay.cols / 2), point.y - (overlay.rows / 2));
+
+#pragma omp parallel for
+	for (int y = cv::max(location.y, 0); y < src.rows; ++y) {
+		int fY = y - location.y;
+
+		if (fY >= overlay.rows)
+			break;
+
+#pragma omp parallel for
+		for (int x = cv::max(location.x, 0); x < src.cols; ++x) {
+			int fX = x - location.x;
+
+			if (fX >= overlay.cols)
+				break;
+
+			double opacity =
+				((double)overlay.data[fY * overlay.step + fX * overlay.channels() + 3]) / 255.;
+
+#pragma omp parallel for
+			for (int c = 0; opacity > 0 && c < src.channels(); ++c) {
+				unsigned char overlayPx = overlay.data[fY * overlay.step + fX * overlay.channels() + c];
+				unsigned char srcPx = src.data[y * src.step + x * src.channels() + c];
+				src.data[y * src.step + src.channels() * x + c] = srcPx * (1. - opacity) + overlayPx * opacity;
+				//src.data[y * src.step + src.channels() * x + c] = overlayPx;
+			}
+		}
+	}
+}
+
+
+inline cv::Point2f Kinect::convertPointCylinder(const cv::Point2f point, int w, int h, double r_factor)
+{
+	//center the point at 0,0
+	cv::Point2f pc(point.x - w / 2, point.y - h / 2);
+
+	// these are your free parameters
+	// cylinder focal length and radius
+	float f = -w;
+	float r = w*r_factor;
+
+	float omega = w / 2;
+	float z0 = f - sqrt(r*r - omega*omega);
+
+	float zc = (2 * z0 + sqrt(4 * z0*z0 - 4 * (pc.x*pc.x / (f*f) + 1)*(z0*z0 - r*r))) / (2 * (pc.x*pc.x / (f*f) + 1));
+	cv::Point2f final_point(pc.x*zc / f, pc.y*zc / f);
+	final_point.x += w / 2;
+	final_point.y += h / 2;
+	return final_point;
+}
+
+inline cv::Mat Kinect::cylinderProjection(const cv::Mat &input, double focalLength, double radius)
+{
+	int height = input.rows;
+	int width = input.cols;
+
+	cv::Mat output = cv::Mat(2 * height, 2 * width, input.type());
+
+#pragma omp parallel for
+	for (int y = 0; y < output.rows; y++)
+	{
+		//std::cout << "for " << "y " << y << std::endl;
+#pragma omp parallel for
+		for (int x = 0; x < output.cols; x++)
+		{
+
+			if (output.channels() == 4) {
+				const cv::Vec4b val(0, 0, 0, 0);
+				output.at<cv::Vec4b>(y, x) = val;
+			}
+
+			cv::Point2f current_pos(x - height / 2, y - width / 2);
+			current_pos = convertPointCylinder(current_pos, width, height, radius);
+
+			cv::Point2i top_left((int)current_pos.x, (int)current_pos.y); //top left because of integer rounding
+
+			//make sure the point is actually inside the original image
+			if (top_left.x < 0 ||
+				top_left.x > width - 2 ||
+				top_left.y < 0 ||
+				top_left.y > height - 2)
+			{
+				continue;
+			}
+
+			//bilinear interpolation
+			float dx = current_pos.x - top_left.x;
+			float dy = current_pos.y - top_left.y;
+
+			float weight_tl = (1.0 - dx) * (1.0 - dy);
+			float weight_tr = dx * (1.0 - dy);
+			float weight_bl = (1.0 - dx) * dy;
+			float weight_br = dx*dy;
+
+			if (input.channels() == 3) 
+			{
+				//std::cout << "antes de pegar as coisa" << std::endl;
+				cv::Vec3b v1 = input.at<cv::Vec3b>(top_left);
+				cv::Vec3b v2 = input.at<cv::Vec3b>(top_left.y, top_left.x + 1);
+				cv::Vec3b v3 = input.at<cv::Vec3b>(top_left.y + 1, top_left.x);
+				cv::Vec3b v4 = input.at<cv::Vec3b>(top_left.y + 1, top_left.x + 1);
+				cv::Vec3b value(0, 0, 0);
+
+				for (int c = 0; c < input.channels(); ++c) {
+					value[c] = weight_tl * v1[c] +
+						weight_tr * v2[c] +
+						weight_bl * v3[c] +
+						weight_br * v4[c];
+				}
+				output.at<cv::Vec3b>(y, x) = value;
+			}
+			else if (input.channels() == 4)
+			{
+				//std::cout << "antes de pegar as coisa" << std::endl;
+				cv::Vec4b v1 = input.at<cv::Vec4b>(top_left);
+				cv::Vec4b v2 = input.at<cv::Vec4b>(top_left.y, top_left.x + 1);
+				cv::Vec4b v3 = input.at<cv::Vec4b>(top_left.y + 1, top_left.x);
+				cv::Vec4b v4 = input.at<cv::Vec4b>(top_left.y + 1, top_left.x + 1);
+				cv::Vec4b value(0, 0, 0, 0);
+
+				for (int c = 0; c < input.channels(); ++c) {
+					value[c] = weight_tl * v1[c] +
+						weight_tr * v2[c] +
+						weight_bl * v3[c] +
+						weight_br * v4[c];
+				}
+				output.at<cv::Vec4b>(y, x) = value;
+			}
+			else if (input.channels() == 1)
+			{
+				uchar value = weight_tl * input.at<uchar>(top_left) +
+					weight_tr * input.at<uchar>(top_left.y, top_left.x + 1) +
+					weight_bl * input.at<uchar>(top_left.y + 1, top_left.x) +
+					weight_br * input.at<uchar>(top_left.y + 1, top_left.x + 1);
+
+				output.at<uchar>(y, x) = value;
+			}
+
+		}
+	}
+
+	return output;
 }
 
 // Draw Body
@@ -614,6 +732,14 @@ inline void Kinect::drawBody()
 				const int x = static_cast<int>(colorSpacePoint.X + 0.5f);
 				const int y = static_cast<int>(colorSpacePoint.Y + 0.5f);
 				rightHand = cv::Point(x, y);
+			}
+
+			if (joint.JointType == JointType::JointType_WristRight) {
+				ColorSpacePoint colorSpacePoint;
+				ERROR_CHECK(coordinateMapper->MapCameraPointToColorSpace(joint.Position, &colorSpacePoint));
+				const int x = static_cast<int>(colorSpacePoint.X + 0.5f);
+				const int y = static_cast<int>(colorSpacePoint.Y + 0.5f);
+				rightWrist = cv::Point(x, y);
 
 				///////////////////////////////
 				CameraSpacePoint cameraPoint = joint.Position;

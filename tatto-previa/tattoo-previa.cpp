@@ -8,22 +8,24 @@
 
 #include "Kinect.h"
 
-
-void rotateImage(const cv::Mat &input, cv::Mat &output, cv::Point3f rotationVector, double dx, double dy, double dz, double f);
+cv::Mat convert_img(cv::Mat &image, double radius);
 
 int main(int argc, char* argv[])
 {
 	
-	//char* filename = "images/lena.png";
-	char* filename = "images/rose.png";
+	char* filename = "images/yy.png";
+	//char* filename = "images/rose.png";
 
 
+	cv::Mat img = cv::imread(filename, CV_LOAD_IMAGE_COLOR);
+
+	//std::cout << img << std::endl;
 
 
-	//cv::Mat img = cv::imread(filename, CV_LOAD_IMAGE_COLOR);
-	////cv::namedWindow("window", CV_WINDOW_AUTOSIZE);
-	////cv::imshow("window", img);
-	////cv::waitKey(0);
+	//cv::cvtColor(img, img, CV_BGR2GRAY);
+	//cv::namedWindow("window", CV_WINDOW_AUTOSIZE);
+	//cv::imshow("window", img);
+	//cv::waitKey(0);
 
 	//cv::Point3f p1 = cv::Point3f(0.5520, 0.1465, 1.1279);
 	//cv::Point3f p2 = cv::Point3f(0.2633, 0.0129, 1.22325);
@@ -35,9 +37,11 @@ int main(int argc, char* argv[])
 	//cv::waitKey(0);
 
 
-	cv::Point3f pt(0, 0, 5);
 
-
+	//cv::Mat output = convert_img(img, .5);
+	//cv::namedWindow("window", CV_WINDOW_AUTOSIZE);
+	//cv::imshow("window", output);
+	//cv::waitKey(0);
 
 
 	try {
@@ -55,77 +59,86 @@ int main(int argc, char* argv[])
 	return 0;
 }
 
-
-
-void rotateImage(const cv::Mat &input, cv::Mat &output, cv::Point3f rotationVector, double gamma, double dx, double dy, double dz, double fx, double fy)
+cv::Point2f convert_pt(cv::Point2f point, int w, int h, double r_factor)
 {
-	cv::Mat mat;
-	cv::Rodrigues(cv::Mat(rotationVector), mat);
+	//center the point at 0,0
+	cv::Point2f pc(point.x - w / 2, point.y - h / 2);
+
+	// these are your free parameters
+	// cylinder focal length and radius
+	float f = -w;
+	float r = w*r_factor;
+
+	float omega = w / 2;
+	float z0 = f - sqrt(r*r - omega*omega);
+
+	float zc = (2 * z0 + sqrt(4 * z0*z0 - 4 * (pc.x*pc.x / (f*f) + 1)*(z0*z0 - r*r))) / (2 * (pc.x*pc.x / (f*f) + 1));
+	cv::Point2f final_point(pc.x*zc / f, pc.y*zc / f);
+	final_point.x += w / 2;
+	final_point.y += h / 2;
+	return final_point;
+}
+
+cv::Mat convert_img(cv::Mat &input, double radius) 
+{
+	int height = input.rows;
+	int width = input.cols;
+
+	bool found = false;
+	double xf, yf;
 
 
-	double zer[3] = { 0.0 };
-	double zer1[4] = { 0.0 };
-	cv::vconcat(mat, cv::Mat(1, 3, CV_32F, zer), mat);
-	cv::hconcat(mat, cv::Mat(4, 1, CV_32F, zer1), mat);
-	mat.at<float>(3, 3) = 1.0;
+	cv::Mat output = cv::Mat::ones(2 * height, 2 * width, input.type());
+
+	for (int y = 0; y < output.rows; y++)
+	{
+		for (int x = 0; x < output.cols; x++)
+		{
+			cv::Point2f current_pos(x-height/2, y-width/2);
+			current_pos = convert_pt(current_pos, width, height, radius);
+
+			cv::Point2i top_left((int)current_pos.x, (int)current_pos.y); //top left because of integer rounding
+
+			//make sure the point is actually inside the original image
+			if (top_left.x < 0 ||
+				top_left.x > width - 2 ||
+				top_left.y < 0 ||
+				top_left.y > height - 2)
+			{
+				if (!found) {
+					found = true;
+					xf = y;
+					yf = x;
+				}
+				continue;
+			}
+
+			//bilinear interpolation
+			float dx = current_pos.x - top_left.x;
+			float dy = current_pos.y - top_left.y;
+
+			float weight_tl = (1.0 - dx) * (1.0 - dy);
+			float weight_tr = (dx)* (1.0 - dy);
+			float weight_bl = (1.0 - dx) * (dy);
+			float weight_br = (dx)* (dy);
+
+			cv::Vec3b v1 = input.at<cv::Vec3b>(top_left);
+			cv::Vec3b v2 = input.at<cv::Vec3b>(top_left.y, top_left.x + 1);
+			cv::Vec3b v3 = input.at<cv::Vec3b>(top_left.y + 1, top_left.x);
+			cv::Vec3b v4 = input.at<cv::Vec3b>(top_left.y + 1, top_left.x + 1);
+			cv::Vec3b value(0, 0, 0);
+
+			for (int c = 0; c < input.channels(); ++c) {
+				value[c] = weight_tl * v1[c] +
+					weight_tr * v2[c] +
+					weight_bl * v3[c] +
+					weight_br * v4[c];
+			}
+			output.at<cv::Vec3b>(y, x) = value;
+		}
+	}
 
 
-	//alpha = (alpha)*CV_PI / 180.;
-	//beta = (beta)*CV_PI / 180.;
-	gamma = (gamma)*CV_PI / 180.;
 
-	// get width and height for ease of use in matrices
-	double w = (double)input.cols;
-	double h = (double)input.rows;
-
-	// Projection 2D -> 3D matrix
-	cv::Mat A1 = (cv::Mat_<double>(4, 3) <<
-		1, 0, -w / 2,
-		0, 1, -h / 2,
-		0, 0, 0,
-		0, 0, 1);
-
-	//// Rotation matrices around the X, Y, and Z axis
-	//Mat RX = (Mat_<double>(4, 4) <<
-	//	1, 0, 0, 0,
-	//	0, cos(alpha), -sin(alpha), 0,
-	//	0, sin(alpha), cos(alpha), 0,
-	//	0, 0, 0, 1);
-	//Mat RY = (Mat_<double>(4, 4) <<
-	//	cos(beta), 0, -sin(beta), 0,
-	//	0, 1, 0, 0,
-	//	sin(beta), 0, cos(beta), 0,
-	//	0, 0, 0, 1);
-
-	cv::Mat RZ = (cv::Mat_<double>(4, 4) <<
-		cos(gamma), -sin(gamma), 0, 0,
-		sin(gamma), cos(gamma), 0, 0,
-		0, 0, 1, 0,
-		0, 0, 0, 1);
-
-	// Composed rotation matrix with (RX, RY, RZ)
-	//Mat R = RX * RY * RZ;
-	mat.convertTo(mat, A1.type());
-	cv::Mat R = mat * RZ;
-
-	// Translation matrix
-	cv::Mat T = (cv::Mat_<double>(4, 4) <<
-		1, 0, 0, dx,
-		0, 1, 0, dy,
-		0, 0, 1, dz,
-		0, 0, 0, 1);
-
-	// 3D -> 2D matrix
-	cv::Mat A2 = (cv::Mat_<double>(3, 4) <<
-		fx, 0, w / 2, 0,
-		0, fy, h / 2, 0,
-		0, 0, 1, 0);
-
-
-	// Final transformation matrix
-	cv::Mat trans = A2 * (T * (R * A1));
-
-
-	// Apply matrix transformation
-	cv::warpPerspective(input, output, trans, input.size(), cv::INTER_LANCZOS4);
+	return output;
 }

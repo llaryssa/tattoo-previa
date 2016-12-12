@@ -36,8 +36,9 @@ private:
 
 
 	cv::Point rightElbow;
-	cv::Point rightHand;
+	cv::Point rightWrist;
 
+	cv::Point rightHand;
 	cv::Point leftHand;
 
 	cv::Point3d target1;
@@ -121,6 +122,10 @@ private:
 	
 	inline void rotateImage(const cv::Mat &input, cv::Mat &output, double alpha, double beta, double gamma, double dx, double dy, double dz, double fx, double fy);
 	inline void rotateImage(const cv::Mat &input, cv::Mat &output, cv::Point3f rotationVector, double gamma, double dx, double dy, double dz, double fx, double fy);
+
+	inline cv::Mat cylinderProjection(const cv::Mat &input, double focalLength, double radius);
+
+	inline cv::Point2f convertPointCylinder(const cv::Point2f point, int w, int h, double r_factor);
 
 	// Draw Body
 	inline void drawBody();
