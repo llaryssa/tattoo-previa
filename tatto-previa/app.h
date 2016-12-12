@@ -9,6 +9,9 @@
 
 #include <vector>
 #include <array>
+#include <string>
+using std::string;
+const string imagesPath[] = { "emoticon.png", "lena.png", "rose.png", "windows.png", "yy.png", "ancora.png", "arr.png", "cruz.png", "drag.png", "escorpiao.png", "flor.png", "heart.png", "leao.png", "patas.png", "rose2.png", "seta.png", "tat.png", "tat4.png", "tr.png" };
 
 #include <wrl/client.h>
 using namespace Microsoft::WRL;
@@ -150,6 +153,9 @@ private:
 	
 	// Change Tattoo
 	inline void changeTattoo();
+	
+	//updateNextImageFrame
+	void updateNextImageFrame();
 };
 
 #endif // __APP__
