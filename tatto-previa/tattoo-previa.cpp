@@ -13,7 +13,7 @@ cv::Mat convert_img(cv::Mat &image, double radius);
 int main(int argc, char* argv[])
 {
 	
-	char* filename = "images/yy.png";
+	char* filename = "images/emoticon.png";
 	//char* filename = "images/rose.png";
 
 
