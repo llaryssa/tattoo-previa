@@ -25,7 +25,7 @@ Kinect::~Kinect()
 	finalize();
 }
 
-void Kinect::setTattoo(char* filename)
+void Kinect::setTattoo(const char* filename)
 {
 	// -1 is to guarantee that the transparancy is read
 	tattooSrcMat = cv::imread(filename, -1);
@@ -866,8 +866,11 @@ inline void Kinect::changeTattoo(){
 	const double distLeftHandButNext = cv::norm(leftHand - buttonImageLocation);
 	const double distRightHandButNext = cv::norm(rightHand - buttonImageLocation);
 	if (distLeftHandButNext < buttonRadius || distRightHandButNext < buttonRadius) {
+		
 		//colocar aqui ação que deve acontecer quando a mão passar no botão 
-		tattooSrcMat = cv::imread("images/" + imagesPath[index], -1);
+		std::string path = "images/" + imagesPath[index];
+		setTattoo(path.c_str());
+
 		if (index == 18){
 			index = 0;
 		}
@@ -876,6 +879,8 @@ inline void Kinect::changeTattoo(){
 			index++;
 		}
 		updateNextImageFrame();
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(300));
 	}
 }
 
@@ -888,7 +893,7 @@ void Kinect::updateNextImageFrame()
 	}
 	else
 	{
-		cv::String imageName("images/" + imagesPath[index + 1]);
+		cv::String imageName("images/" + imagesPath[index]);
 		image = imread(imageName, cv::IMREAD_COLOR); // Read the file
 	}
 	cv::imshow("Next image", image);

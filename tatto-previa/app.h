@@ -11,7 +11,7 @@
 #include <array>
 #include <string>
 using std::string;
-const string imagesPath[] = { "emoticon.png", "lena.png", "rose.png", "windows.png", "yy.png", "ancora.png", "arr.png", "cruz.png", "drag.png", "escorpiao.png", "flor.png", "heart.png", "leao.png", "patas.png", "rose2.png", "seta.png", "tat.png", "tat4.png", "tr.png" };
+const string imagesPath[] = { "emoticon.png", "rose.png", "windows.png", "yy.png", "ancora.png", "cruz.png", "escorpiao.png", "flor.png", "heart.png", "leao.png", "patas.png", "rose2.png", "seta.png", "tat.png", "tat4.png", "tr.png" };
 
 #include <wrl/client.h>
 using namespace Microsoft::WRL;
@@ -68,7 +68,7 @@ public:
 
 	
 	// Load the tattoo file
-	void setTattoo(char* filename);
+	void setTattoo(const char* filename);
 
 	// Processing
 	void run();
